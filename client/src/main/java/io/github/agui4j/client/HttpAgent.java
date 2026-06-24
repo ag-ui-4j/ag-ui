@@ -108,8 +108,8 @@ public final class HttpAgent implements Agent {
             }
             parser.flush().ifPresent(data -> publisher.submit(decode(data)));
             publisher.close();
-        } catch (Throwable t) {
-            publisher.closeExceptionally(t);
+        } catch (Exception e) {
+            publisher.closeExceptionally(e);
         }
     }
 
