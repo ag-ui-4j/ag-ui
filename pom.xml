@@ -51,6 +51,9 @@
         <sonar.organization>ag-ui-4j</sonar.organization>
         <sonar.projectKey>ag-ui-4j_ag-ui</sonar.projectKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <!-- Do not run analysis on test sources (no issues raised on test code).
+             Coverage of main code by these tests is unaffected. -->
+        <sonar.test.exclusions>**/*</sonar.test.exclusions>
     </properties>
 
     <dependencyManagement>
