@@ -14,7 +14,7 @@ class ToolTest {
     @Test
     void toolParametersDefaultTypeIsObject() {
         ToolParameters params = new ToolParameters(Map.of("q", Map.of("type", "string")), List.of("q"));
-        assertEquals(ToolParameters.TYPE, params.type());
+        assertEquals(ToolParameters.TOOL_PARAMETERS_TYPE, params.type());
         assertEquals("object", params.type());
     }
 
