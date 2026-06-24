@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # Java dependencies. A single "/" entry covers the whole Maven reactor
+  # (core, client, server) via the root pom.
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      # Roll routine version bumps into one PR per run to cut noise; security
+      # updates are still opened individually.
+      maven-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Keep the GitHub Actions used by the CI / release / CodeQL / Sonar workflows
+  # up to date.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
