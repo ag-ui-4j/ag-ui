@@ -108,6 +108,11 @@ public final class HttpAgent implements Agent {
             }
             parser.flush().ifPresent(data -> publisher.submit(decode(data)));
             publisher.close();
+        } catch (InterruptedException e) {
+            // Restore the interrupt status before surfacing the failure, so callers
+            // up the stack can still observe that this thread was interrupted.
+            Thread.currentThread().interrupt();
+            publisher.closeExceptionally(e);
         } catch (Exception e) {
             publisher.closeExceptionally(e);
         }
