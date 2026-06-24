@@ -13,7 +13,7 @@ import java.util.Objects;
 public record ToolCall(String id, FunctionCall function) {
 
     /** The only supported tool call type in the AG-UI protocol. */
-    public static final String TYPE = "function";
+    public static final String TOOL_CALL_TYPE = "function";
 
     public ToolCall {
         Objects.requireNonNull(id, "id must not be null");
@@ -21,9 +21,9 @@ public record ToolCall(String id, FunctionCall function) {
     }
 
     /**
-     * @return the tool call type, always {@value #TYPE}
+     * @return the tool call type, always {@value #TOOL_CALL_TYPE}
      */
     public String type() {
-        return TYPE;
+        return TOOL_CALL_TYPE;
     }
 }

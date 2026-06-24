@@ -1,5 +1,7 @@
 # ag-ui · server
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ag-ui-4j_ag-ui&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ag-ui-4j_ag-ui)
+
 Server-side support for the [AG-UI protocol](https://docs.ag-ui.com).
 
 This module exposes an [`Agent`](../core/src/main/java/io/github/agui4j/core/agent/Agent.java)
