@@ -65,7 +65,7 @@ Jackson, Gson, or another library; client and server modules accept a
 <dependency>
     <groupId>io.github.ag-ui-4j</groupId>
     <artifactId>core</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
