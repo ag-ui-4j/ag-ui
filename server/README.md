@@ -22,6 +22,7 @@ third-party dependencies.
 | Type | Purpose |
 |------|---------|
 | [`AgentRunHandler`](src/main/java/io/github/agui4j/server/AgentRunHandler.java) | Parses a request body into a `RunAgentInput`, runs the `Agent`, and relays its events to an `EventSink`, framing each through an `EventEncoder`. Knows nothing about HTTP or the wire protocol. |
+| [`AgentRegistry`](src/main/java/io/github/agui4j/server/AgentRegistry.java) | A lookup from agent id to `Agent`, so a transport can route `/agent/{id}` to one of several agents. `single()` exposes the sole agent when exactly one is registered. |
 | [`EventEncoder`](src/main/java/io/github/agui4j/server/EventEncoder.java) | Frames an `Event` for a particular protocol — the single point of variation between SSE and a future transport such as WebSocket. |
 | [`EventSink`](src/main/java/io/github/agui4j/server/EventSink.java) | A transport-neutral destination for already-encoded frames; an adapter implements it over its response. |
 | [`SseEventEncoder`](src/main/java/io/github/agui4j/server/SseEventEncoder.java) | The SSE `EventEncoder`: encodes an `Event` as a `data:` frame using the injected `Serializer`. |
@@ -32,7 +33,7 @@ third-party dependencies.
 
 | Type | Purpose |
 |------|---------|
-| [`JdkAgentHttpHandler`](src/main/java/io/github/agui4j/server/jdk/JdkAgentHttpHandler.java) | An `HttpHandler` for the JDK's built-in `com.sun.net.httpserver`. Streams events as `text/event-stream`, rejects malformed input with `400` and non-`POST` with `405`. No third-party dependencies. |
+| [`JdkAgentHttpHandler`](src/main/java/io/github/agui4j/server/jdk/JdkAgentHttpHandler.java) | An `HttpHandler` for the JDK's built-in `com.sun.net.httpserver`. Routes `/agent/{id}` to an agent from an `AgentRegistry` (single-agent alias on the base path), streams events as `text/event-stream`, and rejects unknown ids with `404`, malformed input with `400`, and non-`POST` with `405`. No third-party dependencies. |
 
 ## Usage
 
@@ -53,6 +54,24 @@ server.start();
 
 Point the [`HttpAgent`](../client) client at `http://localhost:8080/agent` to
 drive it.
+
+### Multiple agents
+
+Pass an [`AgentRegistry`](src/main/java/io/github/agui4j/server/AgentRegistry.java)
+to address several agents by the id in the path (`/agent/{id}`). An unknown id
+returns `404`:
+
+```java
+AgentRegistry registry = AgentRegistry.of(Map.of(
+        "weather", weatherAgent,
+        "support", supportAgent));
+
+server.createContext("/agent", new JdkAgentHttpHandler(registry, serializer));
+// POST /agent/weather -> weatherAgent, POST /agent/support -> supportAgent
+```
+
+The single-agent constructor above is shorthand for a one-entry registry: it is
+served on the base path (the alias) and on `/agent/default`.
 
 ### Bringing your own transport
 
