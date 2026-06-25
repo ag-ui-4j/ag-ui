@@ -10,6 +10,7 @@ import io.github.agui4j.core.event.Event;
 import io.github.agui4j.core.event.RunFinishedEvent;
 import io.github.agui4j.core.event.RunStartedEvent;
 import io.github.agui4j.core.event.TextMessageContentEvent;
+import io.github.agui4j.server.AgentRegistry;
 import io.github.agui4j.server.FakeSerializer;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -18,6 +19,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.SubmissionPublisher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,9 +84,53 @@ class JdkAgentHttpHandlerTest {
         assertEquals(405, response.statusCode());
     }
 
+    @Test
+    void routesToAgentByIdInPath() throws Exception {
+        // Distinct event types let FakeSerializer (which encodes type()) tell the agents apart.
+        Agent weather = agentEmitting(new RunStartedEvent("t1", "r1"));
+        Agent support = agentEmitting(new RunFinishedEvent("t1", "r1"));
+        server.createContext("/agent", new JdkAgentHttpHandler(
+                AgentRegistry.of(Map.of("weather", weather, "support", support)),
+                FakeSerializer.returning(INPUT)));
+        server.start();
+
+        assertEquals("data: RUN_STARTED\n\n", postTo("/agent/weather", "{}").body());
+        assertEquals("data: RUN_FINISHED\n\n", postTo("/agent/support", "{}").body());
+    }
+
+    @Test
+    void unknownAgentIdReturnsNotFound() throws Exception {
+        server.createContext("/agent", new JdkAgentHttpHandler(
+                AgentRegistry.of(Map.of("weather", agentEmitting(new RunStartedEvent("t1", "r1")))),
+                FakeSerializer.returning(INPUT)));
+        server.start();
+
+        assertEquals(404, postTo("/agent/missing", "{}").statusCode());
+    }
+
+    private static Agent agentEmitting(Event event) {
+        return input -> subscriber -> {
+            SubmissionPublisher<Event> publisher = new SubmissionPublisher<>();
+            publisher.subscribe(subscriber);
+            publisher.submit(event);
+            publisher.close();
+        };
+    }
+
     private void register(JdkAgentHttpHandler handler) {
         server.createContext("/agent", handler);
         server.start();
+    }
+
+    private HttpResponse<String> postTo(String path, String body) throws Exception {
+        URI uri = URI.create("http://localhost:" + server.getAddress().getPort() + path);
+        return HttpClient.newHttpClient().send(
+                HttpRequest.newBuilder(uri)
+                        .timeout(Duration.ofSeconds(5))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> post(String body) throws Exception {

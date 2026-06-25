@@ -6,55 +6,75 @@ import io.github.agui4j.core.agent.Agent;
 import io.github.agui4j.core.agent.RunAgentInput;
 import io.github.agui4j.core.serialization.SerializationException;
 import io.github.agui4j.core.serialization.Serializer;
+import io.github.agui4j.server.AgentRegistry;
 import io.github.agui4j.server.AgentRunHandler;
 import io.github.agui4j.server.EventSink;
 import io.github.agui4j.server.OutputStreamEventSink;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionException;
 
 /**
- * An {@link HttpHandler} that exposes an {@link Agent} over the AG-UI protocol
- * using only the JDK's built-in HTTP server ({@code com.sun.net.httpserver}). It
- * is the server-side mirror of the JDK-based client and adds no third-party
- * dependencies.
+ * An {@link HttpHandler} that exposes one or more {@link Agent}s over the AG-UI
+ * protocol using only the JDK's built-in HTTP server
+ * ({@code com.sun.net.httpserver}). It is the server-side mirror of the
+ * JDK-based client and adds no third-party dependencies.
  *
  * <p>The handler accepts a {@code POST} whose JSON body is a
- * {@link RunAgentInput}, runs the agent, and streams the resulting events back
- * as {@code text/event-stream}. Malformed input is rejected with
- * {@code 400 Bad Request} before streaming begins; non-{@code POST} requests
- * receive {@code 405 Method Not Allowed}.
+ * {@link RunAgentInput}, runs the addressed agent, and streams the resulting
+ * events back as {@code text/event-stream}.
+ *
+ * <p><b>Routing.</b> Register the handler on a base context (for example
+ * {@code /agent}); the path segment after it selects the agent by id
+ * ({@code /agent/{id}}). When the registry holds exactly one agent, the bare
+ * base path is also served as an alias. An unknown id yields
+ * {@code 404 Not Found}. Malformed input is rejected with {@code 400 Bad
+ * Request} before streaming begins; non-{@code POST} requests receive
+ * {@code 405 Method Not Allowed}.
  *
  * <pre>{@code
+ * AgentRegistry registry = AgentRegistry.of(Map.of("weather", weatherAgent, "support", supportAgent));
  * HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
- * server.createContext("/agent", new JdkAgentHttpHandler(agent, serializer));
+ * server.createContext("/agent", new JdkAgentHttpHandler(registry, serializer));
  * server.start();
+ * // POST /agent/weather -> weatherAgent
  * }</pre>
  */
 public final class JdkAgentHttpHandler implements HttpHandler {
 
-    private final AgentRunHandler handler;
+    /** Id under which the single-agent convenience constructor registers its agent. */
+    static final String DEFAULT_AGENT_ID = "default";
+
+    private final AgentRegistry registry;
+    private final Serializer serializer;
 
     /**
-     * Creates a handler for the given agent and serializer.
+     * Creates a handler that serves a single agent. It answers on the base path
+     * (the alias) and on {@code {base}/default}.
      *
      * @param agent      the agent to run for each request (required)
      * @param serializer the serializer used to read input and encode events
      *                   (required)
      */
     public JdkAgentHttpHandler(Agent agent, Serializer serializer) {
-        this.handler = new AgentRunHandler(agent, serializer);
+        this(AgentRegistry.of(Map.of(DEFAULT_AGENT_ID, Objects.requireNonNull(agent, "agent must not be null"))),
+                serializer);
     }
 
     /**
-     * Creates a handler that delegates to a pre-built {@link AgentRunHandler}.
+     * Creates a handler that routes requests to one of several agents by the id
+     * in the request path.
      *
-     * @param handler the run handler to delegate to (required)
+     * @param registry   the agents addressable by this handler (required)
+     * @param serializer the serializer used to read input and encode events
+     *                   (required)
      */
-    public JdkAgentHttpHandler(AgentRunHandler handler) {
-        this.handler = Objects.requireNonNull(handler, "handler must not be null");
+    public JdkAgentHttpHandler(AgentRegistry registry, Serializer serializer) {
+        this.registry = Objects.requireNonNull(registry, "registry must not be null");
+        this.serializer = Objects.requireNonNull(serializer, "serializer must not be null");
     }
 
     @Override
@@ -64,6 +84,13 @@ public final class JdkAgentHttpHandler implements HttpHandler {
                 exchange.sendResponseHeaders(405, -1);
                 return;
             }
+
+            Agent agent = resolveAgent(exchange);
+            if (agent == null) {
+                exchange.sendResponseHeaders(404, -1);
+                return;
+            }
+            AgentRunHandler handler = new AgentRunHandler(agent, serializer);
 
             String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
 
@@ -93,6 +120,26 @@ public final class JdkAgentHttpHandler implements HttpHandler {
         } finally {
             exchange.close();
         }
+    }
+
+    /**
+     * Resolves the addressed agent from the request path, or {@code null} if no
+     * agent matches. The segment after the context path is the agent id; an
+     * empty segment selects the single-agent alias.
+     */
+    private Agent resolveAgent(HttpExchange exchange) {
+        String contextPath = exchange.getHttpContext().getPath();
+        String path = exchange.getRequestURI().getPath();
+
+        String id = path.length() > contextPath.length() ? path.substring(contextPath.length()) : "";
+        if (id.startsWith("/")) {
+            id = id.substring(1);
+        }
+        if (id.endsWith("/")) {
+            id = id.substring(0, id.length() - 1);
+        }
+
+        return (id.isEmpty() ? registry.single() : registry.find(id)).orElse(null);
     }
 
     private static void respondPlain(HttpExchange exchange, int status, String message) throws IOException {
