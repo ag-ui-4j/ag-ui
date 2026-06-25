@@ -6,7 +6,7 @@
 
     <groupId>io.github.ag-ui-4j</groupId>
     <artifactId>ag-ui</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.0</version>
     <packaging>pom</packaging>
 
     <name>ag-ui</name>
