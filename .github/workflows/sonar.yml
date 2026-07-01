@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Full history lets Sonar attribute issues and compute "new code".
           fetch-depth: 0
