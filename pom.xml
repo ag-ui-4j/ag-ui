@@ -43,8 +43,8 @@
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <junit.version>6.1.0</junit.version>
-        <jacoco.version>0.8.13</jacoco.version>
+        <junit.version>6.1.1</junit.version>
+        <jacoco.version>0.8.15</jacoco.version>
 
         <!-- SonarQube Cloud (sonarcloud.io). These are the keys SonarCloud
              assigns when importing the ag-ui-4j org; adjust if they differ. -->
