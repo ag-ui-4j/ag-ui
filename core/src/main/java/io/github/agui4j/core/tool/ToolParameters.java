@@ -2,6 +2,7 @@ package io.github.agui4j.core.tool;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * The JSON Schema describing the arguments a {@link Tool} accepts. This models
@@ -24,9 +25,9 @@ public record ToolParameters(String type, Map<String, Object> properties, List<S
     public static final String TOOL_PARAMETERS_TYPE = "object";
 
     public ToolParameters {
-        type = type == null ? TOOL_PARAMETERS_TYPE : type;
-        properties = properties == null ? Map.of() : Map.copyOf(properties);
-        required = required == null ? List.of() : List.copyOf(required);
+        type = Objects.isNull(type) ? TOOL_PARAMETERS_TYPE : type;
+        properties = Objects.isNull(properties) ? Map.of() : Map.copyOf(properties);
+        required = Objects.isNull(required) ? List.of() : List.copyOf(required);
     }
 
     /**

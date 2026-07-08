@@ -86,7 +86,7 @@ public final class JdkAgentHttpHandler implements HttpHandler {
             }
 
             Agent agent = resolveAgent(exchange);
-            if (agent == null) {
+            if (Objects.isNull(agent)) {
                 exchange.sendResponseHeaders(404, -1);
                 return;
             }

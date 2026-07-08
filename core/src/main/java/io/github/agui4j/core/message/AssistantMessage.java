@@ -20,7 +20,7 @@ public record AssistantMessage(String id, String content, String name, List<Tool
 
     public AssistantMessage {
         Objects.requireNonNull(id, "id must not be null");
-        toolCalls = toolCalls == null ? List.of() : List.copyOf(toolCalls);
+        toolCalls = Objects.isNull(toolCalls) ? List.of() : List.copyOf(toolCalls);
     }
 
     /**

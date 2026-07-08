@@ -95,6 +95,6 @@ public final class EventRelaySubscriber implements Flow.Subscriber<Event> {
 
     private static String describe(Throwable throwable) {
         String message = throwable.getMessage();
-        return message != null ? message : throwable.getClass().getSimpleName();
+        return Objects.nonNull(message) ? message : throwable.getClass().getSimpleName();
     }
 }
